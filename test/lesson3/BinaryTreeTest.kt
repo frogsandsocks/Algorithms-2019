@@ -84,7 +84,7 @@ class BinaryTreeTest {
                 "After removal of $toRemove from $list binary tree height increased"
             )
 
-            val toRemoveOutOfBound = list[random.nextInt(list.size)] + list.size
+            val toRemoveOutOfBound = random.nextInt(100) + 100
             oldSize -= 1
 
             /*
