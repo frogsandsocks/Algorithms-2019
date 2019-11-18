@@ -61,9 +61,77 @@ class KtBinaryTree<T : Comparable<T>> : AbstractMutableSet<T>(), CheckableSorted
     /**
      * Удаление элемента в дереве
      * Средняя
+     *
+     * Сложность: Худший случай — O(n), где n — это количество элементов. Сложность линейная, так как
+     * дерево несбалансировано.
+     *
+     * Ресурсоёмкость: O(n)
      */
+
+    /* Переменная для отслеживания успешности удаления ключа */
+    private var removeNodeSuccessful = true
+
     override fun remove(element: T): Boolean {
-        TODO()
+
+        /* Сбрасываем значение */
+        removeNodeSuccessful = true
+
+        root = removeNode(element, root)
+        if (removeNodeSuccessful) size--
+
+        return removeNodeSuccessful
+    }
+
+
+    private fun removeNode(element: T, givenNode: Node<T>?): Node<T>? {
+
+        /* Копируем параметр в изменяемый тип */
+        var removeNodeCurrent = givenNode
+
+        /*
+         * Если изначально дерево не имеет элементов
+         * или нужный элемент был не найден и функция вышла за границы дерева после листа
+         */
+        if (removeNodeCurrent == null) {
+
+            removeNodeSuccessful = false
+            return null
+        }
+
+        when {
+
+            /* Проходим дерево до нужного элемента */
+            element < removeNodeCurrent.value -> removeNodeCurrent.left = removeNode(element, removeNodeCurrent.left)
+            element > removeNodeCurrent.value -> removeNodeCurrent.right = removeNode(element, removeNodeCurrent.right)
+
+            /* Если нужный элемент был найден */
+            else -> when {
+
+                /* Если текущий элемент лист или имеет одного потомка */
+                removeNodeCurrent.left == null -> return removeNodeCurrent.right
+                removeNodeCurrent.right == null -> return removeNodeCurrent.left
+
+                /* Если потомка два */
+                else -> {
+
+                    /* Находим элемент с наименьшим ключом */
+                    var removeNodeSearchIterator = removeNodeCurrent.right
+
+                    while (removeNodeSearchIterator?.left != null)
+                        removeNodeSearchIterator = removeNodeSearchIterator.left
+
+                    /* Вставляем этот элемент вместо текущего и удаляем */
+                    removeNodeSearchIterator?.right =
+                        removeNode(removeNodeSearchIterator!!.value, removeNodeCurrent.right)
+                    removeNodeSearchIterator.left = removeNodeCurrent.left
+
+                    removeNodeCurrent = removeNodeSearchIterator
+                }
+            }
+        }
+
+        /* Возвращаем тот же элемент, что и получили, если он не равен ключу и нас не интересует */
+        return removeNodeCurrent
     }
 
     override operator fun contains(element: T): Boolean {
@@ -84,22 +152,53 @@ class KtBinaryTree<T : Comparable<T>> : AbstractMutableSet<T>(), CheckableSorted
     }
 
     inner class BinaryTreeIterator internal constructor() : MutableIterator<T> {
+
+        private var binaryTreeIteratorStack = Stack<Node<T>>()
+
+        init {
+            downToLeftNode(root)
+        }
+
+
         /**
          * Проверка наличия следующего элемента
          * Средняя
+         *
+         * Предполагаю, что сложность здесь будет O(1), также и с ресурсоёмкостью
          */
-        override fun hasNext(): Boolean {
-            // TODO
-            throw NotImplementedError()
+        override fun hasNext(): Boolean = !binaryTreeIteratorStack.empty()
+
+
+        private fun downToLeftNode(givenNode: Node<T>?) {
+
+            /* Копируем параметр в изменяемый тип */
+            var downToLeftNodeIterator = givenNode
+
+            /* Поочерёдно кладём в стек все самые левые элементы */
+            while (downToLeftNodeIterator != null) {
+
+                binaryTreeIteratorStack.push(downToLeftNodeIterator)
+                downToLeftNodeIterator = downToLeftNodeIterator.left
+            }
         }
 
         /**
          * Поиск следующего элемента
          * Средняя
+         *
+         * Сложность: Худший случай — O(n), где n — это количество элементов. Сложность линейная, так как
+         * дерево несбалансировано.
+         *
+         * Ресурсоёмкость: O(n)
          */
         override fun next(): T {
-            // TODO
-            throw NotImplementedError()
+
+            if (!hasNext()) throw NoSuchElementException("Iteration has no more elements")
+
+            val nextNode = binaryTreeIteratorStack.pop()
+            downToLeftNode(nextNode.right)
+
+            return nextNode.value
         }
 
         /**

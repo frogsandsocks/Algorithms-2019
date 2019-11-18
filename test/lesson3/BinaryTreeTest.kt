@@ -1,8 +1,10 @@
 package lesson3
 
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Assertions.assertThrows
 import kotlin.test.Test
 import java.util.*
+
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -65,7 +67,7 @@ class BinaryTreeTest {
             }
             val originalHeight = binarySet.height()
             val toRemove = list[random.nextInt(list.size)]
-            val oldSize = binarySet.size
+            var oldSize = binarySet.size
             assertTrue(binarySet.remove(toRemove))
             assertEquals(oldSize - 1, binarySet.size)
             println("Removing $toRemove from $list")
@@ -81,6 +83,29 @@ class BinaryTreeTest {
                 binarySet.height() <= originalHeight,
                 "After removal of $toRemove from $list binary tree height increased"
             )
+
+            val toRemoveOutOfBound = list[random.nextInt(list.size)] + list.size
+            oldSize -= 1
+
+            /*
+             * Вернуть false, если элемент не найден в дереве и не может быть удалён,
+             * размер не должен измениться
+             */
+            assertFalse(
+                binarySet.remove(toRemoveOutOfBound),
+                "tree.remove() returns true after an attempt to delete item not from the tree"
+            )
+            assertEquals(
+                oldSize,
+                binarySet.size,
+                "Attempting to delete a nonexistent item has increased the size of the tree"
+            )
+
+            /* Вернуть false, если элемент уже был удалён из дерева, размер не должен измениться */
+            assertFalse(binarySet.remove(toRemove))
+            assertEquals(oldSize, binarySet.size)
+
+            assertTrue(binarySet.checkInvariant(), "Binary tree invariant is false after tree.remove()")
         }
     }
 
@@ -97,7 +122,9 @@ class BinaryTreeTest {
     }
 
     private fun testIterator(create: () -> CheckableSortedSet<Int>) {
+
         val random = Random()
+
         for (iteration in 1..100) {
             val list = mutableListOf<Int>()
             for (i in 1..20) {
@@ -106,6 +133,10 @@ class BinaryTreeTest {
             val treeSet = TreeSet<Int>()
             val binarySet = create()
             assertFalse(binarySet.iterator().hasNext(), "Iterator of empty set should not have next element")
+
+            /* If iteration has no more elements -> throw NoSuchElementException*/
+            assertThrows(NoSuchElementException::class.java) { binarySet.iterator().next() }
+
             for (element in list) {
                 treeSet += element
                 binarySet += element
