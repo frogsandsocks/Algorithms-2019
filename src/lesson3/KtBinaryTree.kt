@@ -1,5 +1,6 @@
 package lesson3
 
+import java.lang.IllegalArgumentException
 import java.util.*
 import kotlin.NoSuchElementException
 import kotlin.math.max
@@ -215,29 +216,257 @@ class KtBinaryTree<T : Comparable<T>> : AbstractMutableSet<T>(), CheckableSorted
 
     override fun comparator(): Comparator<in T>? = null
 
+
+    inner class SubKtBinaryTree(private val ktBinaryTree: KtBinaryTree<T>, val fromElement: T?, val toElement: T?) :
+        AbstractMutableSet<T>(), SortedSet<T> {
+
+
+        init {
+            require(!(fromElement == null && toElement == null))
+        }
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        override val size: Int
+            get() = when {
+                fromElement == null -> ktBinaryTree.count { it < toElement!! }
+                toElement == null -> ktBinaryTree.count { it >= fromElement }
+                else -> ktBinaryTree.count { it >= fromElement && it < toElement }
+            }
+
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        override fun add(element: T): Boolean {
+
+            val state = when {
+
+                fromElement == null -> element < toElement!!
+                toElement == null -> element >= fromElement
+                else -> (element >= fromElement && element < toElement)
+            }
+
+            return if (state) {
+
+                ktBinaryTree.add(element)
+                true
+
+            } else throw IllegalArgumentException()
+        }
+
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        override fun remove(element: T): Boolean = ktBinaryTree.remove(element)
+
+        override fun iterator(): MutableIterator<T> = object : MutableIterator<T> {
+            private val delegate = this@SubKtBinaryTree.ktBinaryTree.iterator()
+
+            private var next: T? = null
+
+            init {
+                if (fromElement != null) {
+                    while (delegate.hasNext()) {
+                        val next = delegate.next()
+                        if (next >= fromElement) {
+                            this.next = next
+                            break
+                        }
+                    }
+
+                } else {
+
+                    this.next = delegate.next()
+                }
+            }
+
+            /*
+             * Сложность: O(1)
+             * Ресурсоёмкость: O(1)
+             */
+            override fun hasNext(): Boolean {
+                return next != null
+            }
+
+            /*
+             * Сложность: O(n)
+             * Ресурсоёмкость: O(2n) -> O(n)
+             */
+            override fun next(): T {
+
+                var lastNext: T
+
+                if (hasNext()) lastNext = next!!
+                else throw NoSuchElementException("Iteration has no more elements")
+
+                if (delegate.hasNext()) {
+
+                    next = delegate.next()
+
+                    if ((toElement != null) && (next!! >= toElement)) next = null
+
+                } else next = null
+
+                return lastNext
+            }
+
+            override fun remove() {
+                delegate.remove()
+            }
+
+        }
+
+        /*
+         * Сложность: O(1)
+         * Ресурсоёмкость: O(1)
+         */
+        override fun tailSet(fromElement: T): SortedSet<T> {
+
+            return if (this.fromElement != null) {
+
+                if (fromElement >= this.fromElement) {
+                    SubKtBinaryTree(this@KtBinaryTree, fromElement, null)
+
+                } else throw IllegalArgumentException()
+
+            } else SubKtBinaryTree(this@KtBinaryTree, fromElement, null)
+        }
+
+        /*
+         * Сложность: O(1)
+         * Ресурсоёмкость: O(1)
+         */
+        override fun headSet(toElement: T): SortedSet<T> {
+
+            return if (this.toElement != null) {
+
+                if (toElement >= this.toElement) {
+                    SubKtBinaryTree(this@KtBinaryTree, toElement, null)
+
+                } else throw IllegalArgumentException()
+
+            } else SubKtBinaryTree(this@KtBinaryTree, toElement, null)
+        }
+
+        /*
+         * Сложность: O(1)
+         * Ресурсоёмкость: O(1)
+         */
+        override fun subSet(fromElement: T, toElement: T): SortedSet<T> {
+
+            var checkBoundsHead = true
+            var checkBoundsTail = true
+
+            if ((this.toElement != null) && toElement >= this.toElement) checkBoundsHead = false
+            if ((this.fromElement != null) && fromElement < this.fromElement) checkBoundsTail = false
+
+            if (checkBoundsHead && checkBoundsTail)
+                return SubKtBinaryTree(this@KtBinaryTree, toElement, fromElement)
+            else throw IllegalArgumentException()
+        }
+
+
+        override fun comparator(): Comparator<in T>? = ktBinaryTree.comparator()
+
+
+        private var elementFirst: Node<T>? = null
+        private var lastElement: Node<T>? = null
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        private fun ceiling(element: T, ceilingNodeIterator: Node<T>? = root): Node<T>? {
+
+            if (ceilingNodeIterator == null) {
+
+                elementFirst = lastElement
+                return null
+            }
+
+            if (ceilingNodeIterator.value < element) ceiling(element, ceilingNodeIterator.right)
+            else {
+                lastElement = ceilingNodeIterator
+                ceiling(element, ceilingNodeIterator.left)
+            }
+
+            return elementFirst
+        }
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        override fun first(): T {
+
+            return if (fromElement != null) ceiling(fromElement)?.value ?: throw NoSuchElementException()
+            else ktBinaryTree.first()
+        }
+
+
+        private var elementLast: Node<T>? = null
+        private var lastIteratedElement: Node<T>? = null
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        private fun lower(element: T, lowerNode: Node<T>? = root): Node<T>? {
+
+            if (lowerNode == null) {
+
+                elementLast = lastIteratedElement
+                return null
+            }
+
+            if (lowerNode.value >= element) lower(element, lowerNode.left)
+            else {
+
+                lastIteratedElement = lowerNode
+                lower(element, lowerNode.right)
+            }
+
+            return elementLast
+        }
+
+        /*
+         * Сложность: O(n)
+         * Ресурсоёмкость: O(n)
+         */
+        override fun last(): T {
+
+            return if (toElement != null) lower(toElement)?.value ?: throw NoSuchElementException()
+            else ktBinaryTree.last()
+        }
+    }
+
+
     /**
      * Найти множество всех элементов в диапазоне [fromElement, toElement)
      * Очень сложная
      */
-    override fun subSet(fromElement: T, toElement: T): SortedSet<T> {
-        TODO()
-    }
+    override fun subSet(fromElement: T, toElement: T): SortedSet<T> =
+        SubKtBinaryTree(this, fromElement, toElement)
 
     /**
      * Найти множество всех элементов меньше заданного
      * Сложная
      */
-    override fun headSet(toElement: T): SortedSet<T> {
-        TODO()
-    }
+    override fun headSet(toElement: T): SortedSet<T> =
+        SubKtBinaryTree(this, null, toElement)
 
     /**
      * Найти множество всех элементов больше или равных заданного
      * Сложная
      */
-    override fun tailSet(fromElement: T): SortedSet<T> {
-        TODO()
-    }
+    override fun tailSet(fromElement: T): SortedSet<T> =
+        SubKtBinaryTree(this, fromElement, null)
 
     override fun first(): T {
         var current: Node<T> = root ?: throw NoSuchElementException()
