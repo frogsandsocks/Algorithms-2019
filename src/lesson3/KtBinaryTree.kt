@@ -263,7 +263,21 @@ class KtBinaryTree<T : Comparable<T>> : AbstractMutableSet<T>(), CheckableSorted
          * Сложность: O(n)
          * Ресурсоёмкость: O(n)
          */
-        override fun remove(element: T): Boolean = ktBinaryTree.remove(element)
+        override fun remove(element: T): Boolean {
+
+            val state = when {
+
+                fromElement == null -> element < toElement!!
+                toElement == null -> element >= fromElement
+                else -> (element >= fromElement && element < toElement)
+            }
+
+            return if (state) {
+
+                return ktBinaryTree.remove(element)
+
+            } else throw IllegalArgumentException()
+        }
 
         override fun iterator(): MutableIterator<T> = object : MutableIterator<T> {
             private val delegate = this@SubKtBinaryTree.ktBinaryTree.iterator()
