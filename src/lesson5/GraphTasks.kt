@@ -4,7 +4,6 @@ package lesson5
 
 import lesson5.Graph.Vertex
 import java.lang.IllegalArgumentException
-import java.lang.Math.max
 
 /**
  * Эйлеров цикл.
@@ -93,72 +92,87 @@ fun Graph.minimumSpanningTree(): Graph {
  * Если на входе граф с циклами, бросить IllegalArgumentException
  *
  * Эта задача может быть зачтена за пятый и шестой урок одновременно
+ *
+ *
+ * Сложность: O(n^2)
+ * Ресурсоёмкость: O(n^2)
  */
-
 
 private class GraphExplorer(val graph: Graph) {
 
     val vertices: MutableSet<Vertex> = graph.vertices
 
     /* Множество посещённых вершин */
+    val verticesCalculated = mutableMapOf<Vertex, Set<Vertex>>()
     val verticesVisited = mutableSetOf<Vertex>()
-
-    /* Два множества для всех чётных и для всех нечётных вершин одного дерева */
-    val verticesOdd = mutableSetOf<Vertex>()
-    val verticesEven = mutableSetOf<Vertex>()
-
-    /* Конечное множество независимых вершин */
-    val verticesResult = mutableSetOf<Vertex>()
 
 
     fun largestIndependentVertexSet(): Set<Vertex> {
 
+        val result = mutableSetOf<Vertex>()
+
         vertices.forEach { vertex ->
 
-            /* Если в общем множестве остались непосещённые вершины (если есть ещё одно дерево в переданном графе) */
-            if (!verticesVisited.contains(vertex)) {
+            if (!verticesVisited.contains(vertex)) result.addAll(
+                independentVertexSetExploreVertex(
+                    vertex,
+                    null
+                )
+            )
+        }
 
-                /* Записываем первую вершину в дереве в множество нечётных элементов */
-                verticesOdd += vertex
+        return result
+    }
 
-                /* Начинаем обход по дереву с этой вершины */
-                independentVertexSetExploreVertex(vertex)
 
-                /* Выбираем из двух множеств с наибольшим количеством вершин */
-                verticesResult += if (verticesOdd.size >= verticesEven.size) verticesOdd else verticesEven
+    private fun independentVertexSetExploreVertex(vertex: Vertex, previousChild: Vertex?): Set<Vertex> {
 
-                verticesOdd.clear()
-                verticesEven.clear()
+        verticesVisited.add(vertex)
+
+        /* Если максимальное независимое множество вершин посчитано от этой вершины -> вернуть значение */
+        if (verticesCalculated.containsKey(vertex)) return verticesCalculated[vertex]
+            ?: throw IllegalArgumentException()
+
+        /* Самое большое множество, которое можно получить, если не брать текущую вершину */
+        val vertexFromChildrenSum = mutableSetOf<Vertex>()
+
+        /* Самое большое множество, которое можно получить, если взять текущую вершину */
+        val vertexFromGrandchildrenSum = mutableSetOf<Vertex>()
+
+        val vertexChildren = graph.getNeighbors(vertex)
+        vertexChildren.remove(previousChild)
+
+
+        vertexChildren.forEach { vertexChild ->
+
+            vertexFromChildrenSum.addAll(independentVertexSetExploreVertex(vertexChild, vertex))
+        }
+
+
+        vertexChildren.forEach { vertexChild ->
+
+            val vertexGrandchildren = graph.getNeighbors(vertexChild)
+
+            vertexGrandchildren.remove(vertex)
+
+            vertexGrandchildren.forEach { vertexGrandchild ->
+
+                vertexFromGrandchildrenSum.addAll(
+                    independentVertexSetExploreVertex(vertexGrandchild, vertex)
+                )
             }
         }
 
-        return verticesResult
+        vertexFromGrandchildrenSum.add(vertex)
+
+        val result =
+            if (vertexFromGrandchildrenSum.size >= vertexFromChildrenSum.size) vertexFromGrandchildrenSum
+            else vertexFromChildrenSum
+
+        verticesCalculated[vertex] = result
+
+        return result
     }
-
-
-    private fun independentVertexSetExploreVertex(vertex: Vertex) {
-
-        /* Получаем всех соседей текущей вершины */
-        val vertexNeighbors = graph.getNeighbors(vertex)
-        verticesVisited.add(vertex)
-
-        /* Если предыдущая вершина была нечётной, то её соседей записываем в множество чётных и наоборот */
-        when (vertex) {
-
-            in verticesOdd -> verticesEven
-            in verticesEven -> verticesOdd
-
-            else -> throw IllegalArgumentException()
-
-        }.addAll(vertexNeighbors)
-
-        /* Рекурсивно проходим каждую вершину */
-        vertexNeighbors.forEach { vertexNeighbor ->
-            if (!verticesVisited.contains(vertexNeighbor)) independentVertexSetExploreVertex(vertexNeighbor)
-        }
-    }
-
-    private fun graphCheckCycle() {}
 }
 
 fun Graph.largestIndependentVertexSet(): Set<Vertex> = GraphExplorer(this).largestIndependentVertexSet()
