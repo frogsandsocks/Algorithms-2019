@@ -3,6 +3,7 @@
 package lesson5
 
 import lesson5.Graph.Vertex
+import lesson5.impl.GraphBuilder
 import java.lang.IllegalArgumentException
 
 /**
@@ -62,9 +63,37 @@ fun Graph.findEulerLoop(): List<Graph.Edge> {
  * E    F    I
  * |
  * J ------------ K
+ *
+ * Сложность: O(n^2)
+ *
+ * Ресурсоёмкость: O(n)
+ *
  */
 fun Graph.minimumSpanningTree(): Graph {
-    TODO()
+
+    val minimumSpanningTree = GraphBuilder()
+
+    /* Сложность: O(n^2) */
+    val minimumSpanningTreePath = shortestPath(vertices.first())
+
+    val minimumSpanningTreeVertices = mutableMapOf<String, Vertex>()
+
+    /* Сложность: O(n) */
+    vertices.forEach { minimumSpanningTreeVertices[it.name] = minimumSpanningTree.addVertex(it.name) }
+
+    /* Сложность: O(n) */
+    minimumSpanningTreePath.forEach { (_, vertexInfo) ->
+
+        if (vertexInfo.prev?.name != null) {
+
+            minimumSpanningTree.addConnection(
+                minimumSpanningTreeVertices[vertexInfo.prev.name]!!,
+                minimumSpanningTreeVertices[vertexInfo.vertex.name]!!
+            )
+        }
+    }
+
+    return minimumSpanningTree.build()
 }
 
 /**
