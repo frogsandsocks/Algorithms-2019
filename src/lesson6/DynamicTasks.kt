@@ -2,6 +2,10 @@
 
 package lesson6
 
+import java.io.File
+
+import kotlin.Int.Companion.MAX_VALUE
+
 /**
  * Наибольшая общая подпоследовательность.
  * Средняя
@@ -54,8 +58,103 @@ fun longestIncreasingSubSequence(list: List<Int>): List<Int> {
  *
  * Здесь ответ 2 + 3 + 4 + 1 + 2 = 12
  */
+
+private data class Node(val fieldNodeValue: Int) {
+
+    var pathValue = MAX_VALUE
+
+    var closed = false
+}
+
+private data class Coordinates(val x: Int, val y: Int)
+
 fun shortestPathOnField(inputName: String): Int {
-    TODO()
+
+    val inputField = mutableListOf<String>()
+
+    for (line in File(inputName).readLines()) {
+
+        inputField += line
+    }
+
+
+    val field = mutableMapOf<Coordinates, Node>()
+
+    var result = MAX_VALUE
+
+    val fieldLength = inputField.size
+    val fieldWidth = inputField.first().split(" ").size
+
+    inputField.forEachIndexed { lineIndex, line ->
+
+        line.split(" ").forEachIndexed { valueIndex, value ->
+
+            field[Coordinates(valueIndex + 1, lineIndex + 1)] = Node(value.toInt())
+        }
+    }
+
+
+    fun shortestPathNodeExplore(fieldNodeCoordinates: Coordinates, fieldNode: Node) {
+
+        val fieldNodeChildLeftCoordinates = Coordinates(fieldNodeCoordinates.x - 1, fieldNodeCoordinates.y)
+        val fieldNodeChildAboveCoordinates = Coordinates(fieldNodeCoordinates.x, fieldNodeCoordinates.y - 1)
+        val fieldNodeChildDiagonalCoordinates = Coordinates(fieldNodeCoordinates.x - 1, fieldNodeCoordinates.y - 1)
+
+        val fieldNodeChildLeft = field[fieldNodeChildLeftCoordinates]
+        val fieldNodeChildAbove = field[fieldNodeChildAboveCoordinates]
+        val fieldNodeChildDiagonal = field[fieldNodeChildDiagonalCoordinates]
+
+
+        if (fieldNodeChildLeft != null) {
+
+            val fieldNodeLeftStep = fieldNodeChildLeft.fieldNodeValue + fieldNode.pathValue
+
+            if (fieldNodeLeftStep < fieldNodeChildLeft.pathValue) {
+
+                fieldNodeChildLeft.pathValue = fieldNodeLeftStep
+            }
+
+            shortestPathNodeExplore(fieldNodeChildLeftCoordinates, fieldNodeChildLeft)
+        }
+
+
+        if (fieldNodeChildAbove != null) {
+
+            val fieldNodeUpStep = fieldNodeChildAbove.fieldNodeValue + fieldNode.pathValue
+
+            if (fieldNodeUpStep < fieldNodeChildAbove.pathValue) {
+
+                fieldNodeChildAbove.pathValue = fieldNodeUpStep
+            }
+
+            shortestPathNodeExplore(fieldNodeChildAboveCoordinates, fieldNodeChildAbove)
+        }
+
+        if (fieldNodeChildDiagonal != null) {
+
+            val fieldNodeDiagonalStep = fieldNodeChildDiagonal.fieldNodeValue + fieldNode.pathValue
+
+            if (fieldNodeDiagonalStep < fieldNodeChildDiagonal.pathValue) {
+
+                fieldNodeChildDiagonal.pathValue = fieldNodeDiagonalStep
+            }
+
+            shortestPathNodeExplore(fieldNodeChildLeftCoordinates, fieldNodeChildDiagonal)
+        }
+
+        if (fieldNodeChildLeft == null && fieldNodeChildAbove == null) {
+
+            if (result > fieldNode.pathValue) result = fieldNode.pathValue
+        }
+    }
+
+
+    val firstNodeCoordinates = Coordinates(fieldWidth, fieldLength)
+    val firstNode = field[firstNodeCoordinates] ?: return 0
+    firstNode.pathValue = firstNode.fieldNodeValue
+
+    shortestPathNodeExplore(firstNodeCoordinates, firstNode)
+    return result
 }
 
 // Задачу "Максимальное независимое множество вершин в графе без циклов"
