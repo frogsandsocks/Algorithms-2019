@@ -64,6 +64,7 @@ fun Graph.findEulerLoop(): List<Graph.Edge> {
  * |
  * J ------------ K
  *
+ *
  * Сложность: O(n^2)
  *
  * Ресурсоёмкость: O(n)
@@ -72,6 +73,8 @@ fun Graph.findEulerLoop(): List<Graph.Edge> {
 fun Graph.minimumSpanningTree(): Graph {
 
     val minimumSpanningTree = GraphBuilder()
+
+    if (vertices.isEmpty()) return minimumSpanningTree.build()
 
     /* Сложность: O(n^2) */
     val minimumSpanningTreePath = shortestPath(vertices.first())
